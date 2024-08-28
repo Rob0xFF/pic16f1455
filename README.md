@@ -43,6 +43,17 @@ Arduino (tested on Arduino Due) wiring:
     
 ---
 
+Fuses and *.hex file:
+
+Hex files may contain fuses (configuration words 1 and 2) to be written:
+
+	:020000040001F9
+	:04000E00E40FCF3FED
+
+The first command defines an address shift, which is not considered at the moment, the second command defines the fuses to be set. One may omit these lines and write the fuses to be written to the python script.
+
+---
+
 Tested on pic16f1455, probably works (after some tune-ups) with other pic's.
 
 Based on this doc: http://ww1.microchip.com/downloads/en/DeviceDoc/41620C.pdf
