@@ -1,11 +1,11 @@
-#!/usr/bin/python2
+#!python2
 import sys
 import serial
 import time
 
-s = serial.Serial('/dev/ttyACM0', 115200)
-configurationWord1 = 0x3fff
-configurationWord2 = 0x3f4f
+s = serial.Serial(port='/dev/tty.usbmodem2401', baudrate=115200, timeout=1, dsrdtr=False)
+configurationWord1 = 0x250F #3fff
+configurationWord2 = 0x3F3F #3f4f
 
 def programFuse(value, offset):
 	fuse = '%04X' % value
@@ -29,6 +29,7 @@ def latchWord(data):
 	s.write('3%04X' % data)
 	s.read(1)
 
+print "Loading HEX File"
 # load ihex
 infile = open(sys.argv[1])
 parsed = []
@@ -46,9 +47,10 @@ for line in infile:
 	parsed.append([
 		cmd, address, payload_data
 	])
-
+print "Hex File loaded, waiting for Arduino reset"
+time.sleep(3)
 # some sane setup
-print 'Dev info'
+print 'Getting Dev info'
 s.write('q')
 s.read(1)
 s.write('c')
@@ -85,8 +87,6 @@ for cmd, address, payload_data in parsed:
 			s.read(1)
 		verifyMem[current_address] = '%04X' % payload_data[-1]
 		latchWord(payload_data[-1])
-		s.write('4')
-		s.read(1)
 		current_address+=1
 		s.write('5')
 		s.read(1)
@@ -116,16 +116,9 @@ good = 0
 for x in xrange(0x2000):
 	if readMem[x] == verifyMem[x]:
 		good+=1
+	else:
+		print "Address: ", hex(x*2), "; Read: ", readMem[x], "; should be: ", verifyMem[x]
 print (0x2000-good), "Error(s)"
-if good != 0x2000:
-	print
-	print readMem
-	print
-	print "Should be"
-	print
-	print verifyMem
-	print
-
 
 print "Fusing config word 1.",
 programFuse(configurationWord1, 7)

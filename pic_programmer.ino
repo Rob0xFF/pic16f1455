@@ -2,14 +2,23 @@
 #define  DATA   8
 #define  MCLR   7
 
+//#define DEBUG
+
+#ifdef DEBUG
+#define  CLOCK_ANALYZER  13
+#define  DATA_ANALYZER   12
+#define  MCLR_ANALYZER   11
+#endif
+
 #define  VPP1   2
 #define  VPP2   3
 #define  VPP3   4
 
 #define TENTH 250
-#define TDLY 1
+#define TDLY 5
 #define TERAB 250
-#define TPINT 10
+#define TPINT 5
+
 
 void setup() {
  Serial.begin(115200);
@@ -21,31 +30,66 @@ void setup() {
  pinMode(VPP3, OUTPUT);
  pinMode(MCLR, OUTPUT);
 
+#ifdef DEBUG
+ pinMode(CLOCK_ANALYZER, OUTPUT);    
+ pinMode(DATA_ANALYZER, OUTPUT);   
+ pinMode(MCLR_ANALYZER, OUTPUT);
+#endif
+
  Reset();
 }
 
 void WriteBit(char obit)
 {
  digitalWrite(CLOCK, HIGH);
+ #ifdef DEBUG
+ digitalWrite(CLOCK_ANALYZER, HIGH);
+ #endif
  if(obit)
  {
    digitalWrite(DATA,HIGH);
+   #ifdef DEBUG
+   digitalWrite(DATA_ANALYZER,HIGH);
+   #endif
  }else{
    digitalWrite(DATA,LOW); 
+   #ifdef DEBUG
+   digitalWrite(DATA_ANALYZER,LOW); 
+   #endif
  }
  digitalWrite(CLOCK, LOW);
+ #ifdef DEBUG
+ digitalWrite(CLOCK_ANALYZER, LOW);
+ #endif
  digitalWrite(DATA,LOW); 
+ #ifdef DEBUG
+ digitalWrite(DATA_ANALYZER,LOW); 
+ #endif
 }
 
 unsigned char ReadBit()
 {
  unsigned char val = 0;
  digitalWrite(CLOCK, HIGH);
+ #ifdef DEBUG
+ digitalWrite(CLOCK_ANALYZER, HIGH);
+ #endif
  if(digitalRead(DATA))
  {
+  #ifdef DEBUG
+  digitalWrite(DATA_ANALYZER, HIGH);
+  #endif
   val = 1; 
  }
+ #ifdef DEBUG
+ else {
+  digitalWrite(DATA_ANALYZER, LOW);
+ }
+ #endif
  digitalWrite(CLOCK, LOW);
+ #ifdef DEBUG
+ digitalWrite(CLOCK_ANALYZER, LOW);
+ #endif
  return val;
 }
 
@@ -93,6 +137,9 @@ unsigned short ReadProgMem(){
  WriteByteLSB(cmd, 6);
  pinMode(DATA, INPUT);
  digitalWrite(DATA, LOW);
+ #ifdef DEBUG
+ digitalWrite(DATA_ANALYZER, LOW);
+ #endif
  delayMicroseconds(TDLY);
  ReadBit();
  for(int i=0;i<14;i++)
@@ -221,11 +268,18 @@ void Reset(){
  digitalWrite(VPP3, LOW);
  digitalWrite(CLOCK, LOW);
  digitalWrite(DATA, LOW);
+#ifdef DEBUG
+ pinMode(MCLR_ANALYZER, OUTPUT);
+ digitalWrite(MCLR_ANALYZER, HIGH);
+ digitalWrite(CLOCK_ANALYZER, LOW);
+ digitalWrite(DATA_ANALYZER, LOW);
+#endif
  delayMicroseconds(TENTH);
  digitalWrite(VPP1, HIGH);
  digitalWrite(VPP2, HIGH);
  digitalWrite(VPP3, HIGH);
  delayMicroseconds(TENTH);
+
  EnterProg();
 }
 
@@ -236,6 +290,10 @@ void ExitProg(){
  digitalWrite(VPP3, LOW);
  digitalWrite(CLOCK, LOW);
  digitalWrite(DATA, LOW);
+#ifdef DEBUG
+ digitalWrite(CLOCK_ANALYZER, LOW);
+ digitalWrite(DATA_ANALYZER, LOW);
+#endif
  delayMicroseconds(TENTH);
  digitalWrite(VPP1, HIGH);
  digitalWrite(VPP2, HIGH);
@@ -256,6 +314,7 @@ int hexToInt(unsigned char hex){
 }
 
 void loop() {
+  delayMicroseconds(10);
   if (Serial.available() > 0){
     char cmd =  Serial.read();
     switch(cmd){
@@ -285,7 +344,8 @@ void loop() {
       data |= hexToInt(hex)<<4;
       hex =  Serial.read();
       data |= hexToInt(hex);
-      LoadProg(data);        
+      LoadProg(data); 
+      WriteProg();       
       break;
     }
     case '4':
@@ -333,7 +393,7 @@ void loop() {
       break;
     }
     default:
-      Serial.println(cmd);
+      break;
     }
     Serial.print(">"); 
     Serial.flush();
